@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>খুলনা শহরের ঈদের জামাত ম্যাপ + অ্যাডমিন প্যানেল</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <style>
+    :root {
+      --bg: #09130f;
+      --card: rgba(255,255,255,0.08);
+      --card-2: rgba(255,255,255,0.12);
+      --text: #f7f4e8;
+      --muted: #d7d1b8;
+      --gold: #e3c16b;
+      --gold-deep: #bf9437;
+      --green: #1e5c42;
+      --green-2: #2d7a58;
+      --line: rgba(227, 193, 107, 0.25);
+      --shadow: 0 16px 40px rgba(0,0,0,0.28);
+      --radius: 22px;
+      --danger: #ff8a8a;
+      --success: #88f3b7;
+      --info: #99d9ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: 'Hind Siliguri', sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(227, 193, 107, 0.12), transparent 22%),
+        radial-gradient(circle at top left, rgba(45, 122, 88, 0.20), transparent 25%),
+        linear-gradient(180deg, #0a1711 0%, #08100c 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.35), transparent 85%);
+    }
+
+    .crescent {
+      position: fixed;
+      top: 56px;
+      right: 62px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      box-shadow: -14px 0 0 0 var(--gold);
+      transform: rotate(-18deg);
+      opacity: 0.14;
+      pointer-events: none;
+      filter: drop-shadow(0 0 20px rgba(227, 193, 107, 0.25));
+      z-index: 0;
+    }
+
+    .container {
+      width: min(1500px, calc(100% - 32px));
+      margin: 24px auto 36px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #201708;
+      box-shadow: 0 12px 24px rgba(191, 148, 55, 0.28);
+      font-size: 22px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero-card,
+    .stats-card,
+    .panel,
+    .mosque-card,
+    .modal-content,
+    .admin-card,
+    .drawer,
+    .toast {
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .hero-card {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      top: -50px;
+      right: -40px;
+      background: radial-gradient(circle, rgba(227,193,107,0.17), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--gold);
+      background: rgba(227, 193, 107, 0.08);
+      border: 1px solid rgba(227, 193, 107, 0.2);
+      padding: 8px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 50px);
+      line-height: 1.08;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      margin: 14px 0 22px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+      max-width: 760px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      padding: 13px 18px;
+      border-radius: 14px;
+      font-family: inherit;
+      font-weight: 700;
+      transition: 0.22s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-deep));
+      color: #1f1708;
+      box-shadow: 0 12px 28px rgba(191, 148, 55, 0.26);
+    }
+
+    .btn-primary:hover,
+    .btn-secondary:hover,
+    .btn-danger:hover,
+    .btn-success:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn-danger {
+      background: rgba(255,138,138,0.12);
+      color: #ffd7d7;
+      border: 1px solid rgba(255,138,138,0.25);
+    }
+
+    .btn-success {
+      background: rgba(136,243,183,0.12);
+      color: #d8ffe9;
+      border: 1px solid rgba(136,243,183,0.22);
+    }
+
+    .btn-small {
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+
+    .stats-card {
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .stat-box {
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 390px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel,
+    .admin-card {
+      padding: 18px;
+    }
+
+    .panel h2,
+    .admin-card h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+      color: var(--text);
+    }
+
+    .control-grid,
+    .admin-grid,
+    .mini-grid {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .mini-grid.two,
+    .admin-grid.two {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .input,
+    .select,
+    .textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 14px 14px;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .input::placeholder,
+    .textarea::placeholder { color: rgba(247,244,232,0.54); }
+
+    .label {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0 14px;
+      flex-wrap: wrap;
+    }
+
+    .list-count {
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .mosque-list,
+    .admin-list {
+      display: grid;
+      gap: 12px;
+      max-height: 780px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .mosque-list::-webkit-scrollbar,
+    .admin-list::-webkit-scrollbar,
+    .drawer-body::-webkit-scrollbar,
+    .modal-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .mosque-list::-webkit-scrollbar-thumb,
+    .admin-list::-webkit-scrollbar-thumb,
+    .drawer-body::-webkit-scrollbar-thumb,
+    .modal-content::-webkit-scrollbar-thumb {
+      background: rgba(227, 193, 107, 0.24);
+      border-radius: 99px;
+    }
+
+    .mosque-card,
+    .admin-item {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 14px;
+      padding: 12px;
+      cursor: pointer;
+      transition: 0.22s ease;
+    }
+
+    .mosque-card:hover,
+    .mosque-card.active,
+    .admin-item:hover,
+    .admin-item.active {
+      transform: translateY(-2px);
+      border-color: rgba(227,193,107,0.45);
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+    }
+
+    .mosque-thumb,
+    .admin-thumb {
+      width: 100%;
+      height: 96px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: #13241c;
+    }
+
+    .mosque-name {
+      margin: 2px 0 6px;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .mosque-meta,
+    .mosque-time,
+    .small-muted {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .mosque-time strong,
+    .gold {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .map-panel {
+      padding: 18px;
+    }
+
+    .panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.04);
+    }
+
+    .dot-1 { background: #e3c16b; }
+    .dot-2 { background: #7fe4b0; }
+
+    #map {
+      width: 100%;
+      height: 760px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(227, 193, 107, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .section-split {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(227,193,107,0.25), transparent);
+      margin: 16px 0;
+    }
+
+    .custom-popup .leaflet-popup-content-wrapper {
+      background: #102018;
+      color: #f7f4e8;
+      border-radius: 18px;
+      border: 1px solid rgba(227,193,107,0.25);
+      box-shadow: 0 18px 38px rgba(0,0,0,0.34);
+    }
+
+    .custom-popup .leaflet-popup-tip {
+      background: #102018;
+    }
+
+    .popup-card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    .popup-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .popup-card p {
+      margin: 4px 0;
+      color: #d7d1b8;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .leaflet-control-zoom a {
+      background: #102018 !important;
+      color: #f7f4e8 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(9,19,15,0.72) !important;
+      color: #d7d1b8 !important;
+    }
+
+    .leaflet-control-attribution a { color: var(--gold) !important; }
+
+    .modal,
+    .drawer-wrap {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+
+    .modal.show,
+    .drawer-wrap.show { display: flex; }
+
+    .modal-content {
+      width: min(860px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .modal-image {
+      width: 100%;
+      height: 280px;
+      object-fit: cover;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .modal-title {
+      margin: 6px 0 12px;
+      font-size: clamp(24px, 4vw, 34px);
+      line-height: 1.2;
+    }
+
+    .modal-info {
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0 16px;
+    }
+
+    .chip {
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(227,193,107,0.1);
+      border: 1px solid rgba(227,193,107,0.24);
+      color: var(--gold);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .modal-close,
+    .drawer-close {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .drawer-wrap {
+      justify-content: flex-end;
+      padding: 0;
+    }
+
+    .drawer {
+      width: min(580px, 100%);
+      height: 100vh;
+      border-radius: 24px 0 0 24px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .drawer-body {
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .admin-card + .admin-card { margin-top: 16px; }
+
+    .dropzone {
+      border: 1.5px dashed rgba(227,193,107,0.34);
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      background: rgba(255,255,255,0.04);
+      transition: 0.2s ease;
+      cursor: pointer;
+    }
+
+    .dropzone.dragover {
+      background: rgba(227,193,107,0.08);
+      border-color: rgba(227,193,107,0.65);
+      transform: translateY(-1px);
+    }
+
+    .preview {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-top: 12px;
+      background: #13241c;
+    }
+
+    .inline-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .hint-box {
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 14px 16px;
+      min-width: 240px;
+      max-width: 340px;
+      color: #fff;
+    }
+
+    .toast.success { border-color: rgba(136,243,183,0.35); }
+    .toast.error { border-color: rgba(255,138,138,0.35); }
+    .toast.info { border-color: rgba(153,217,255,0.35); }
+
+    .json-box {
+      min-height: 240px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1220px) {
+      .layout,
+      .hero,
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #map { height: 560px; }
+    }
+
+    @media (max-width: 720px) {
+      .container { width: min(100% - 18px, 100%); }
+      .hero-card, .stats-card, .panel, .map-panel, .admin-card { padding: 14px; }
+      .mosque-card, .admin-item { grid-template-columns: 82px 1fr; }
+      .mosque-thumb, .admin-thumb { height: 82px; }
+      #map { height: 480px; }
+      .crescent { top: 40px; right: 22px; width: 54px; height: 54px; }
+      .mini-grid.two, .admin-grid.two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="crescent"></div>
+
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">🌙</div>
+        <div>
+          <div id="siteBrand">Khulna Eid Jamat Guide</div>
+          
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-secondary" onclick="scrollToMap()">ম্যাপ দেখুন</button>
+        <button class="btn btn-primary" onclick="openAdmin()">অ্যাডমিন প্যানেল</button>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow" id="heroEyebrow">🌙 ঈদ মোবারক • খুলনা সিটি জামাত গাইড</div>
+        <h1 id="heroTitle">খুলনা শহরের ম্যাপে দেখুন<br>মসজিদের ছবি সহ ঈদের জামাতের সময়সূচি</h1>
+        <p class="subtitle" id="heroSubtitle">
+          এই প্রিমিয়াম ঈদ-থিম ওয়েবসাইটে আপনি খুলনা শহরের বিভিন্ন মসজিদ ম্যাপ থেকে খুঁজে দেখতে পারবেন,
+          প্রতিটি মসজিদের ছবি, ঠিকানা, একাধিক জামাতের সময়, ধারণক্ষমতা এবং বিস্তারিত তথ্যসহ।
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="scrollToMap()" id="heroPrimaryBtn">ম্যাপ দেখুন</button>
+          <button class="btn btn-secondary" onclick="focusNearest()" id="heroSecondaryBtn">নিকটবর্তী মসজিদ</button>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div class="stat-box">
+          <div class="stat-label">মোট মসজিদ</div>
+          <div class="stat-value" id="totalMosques">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">প্রথম জামাত</div>
+          <div class="stat-value" id="firstJamat">--:--</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">আজকের থিম</div>
+          <div class="stat-value" style="font-size:22px;" id="themeLabel">ঈদের আলো</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2 id="listPanelTitle">মসজিদ খুঁজুন</h2>
+
+        <div class="control-grid">
+          <input id="searchInput" class="input" type="text" placeholder="মসজিদের নাম / এলাকা লিখুন" />
+
+          <select id="areaFilter" class="select">
+            <option value="all">সব এলাকা</option>
+          </select>
+
+          <select id="timeFilter" class="select">
+            <option value="all">সব জামাত</option>
+            <option value="07:00">সকাল ৭:০০-এর আগে</option>
+            <option value="07:30">সকাল ৭:৩০-এর আগে</option>
+            <option value="08:00">সকাল ৮:০০-এর আগে</option>
+          </select>
+        </div>
+
+        <div class="list-header">
+          <div class="list-count" id="resultCount">0 টি ফলাফল</div>
+          <button class="btn btn-secondary btn-small" onclick="resetFilters()">রিসেট</button>
+        </div>
+
+        <div id="mosqueList" class="mosque-list"></div>
+      </aside>
+
+      <div class="panel map-panel" id="mapSection">
+        <div class="panel-top">
+          <h2 style="margin:0;" id="mapTitle">খুলনা শহরের ঈদের জামাত ম্যাপ</h2>
+          <div class="legend">
+            <span><span class="legend-dot dot-1"></span> নির্বাচিত মসজিদ</span>
+            <span><span class="legend-dot dot-2"></span> অন্যান্য মসজিদ</span>
+          </div>
+        </div>
+        <div id="map"></div>
+        <p class="footer-note" id="footerNote">
+          নোট: এটি একটি ডেমো-ভিত্তিক ডাইনামিক টেমপ্লেট। আপনার আসল ওয়েবসাইটে ডেটাবেজ/API যুক্ত করে
+          প্রতিবার ঈদের আগে নতুন সময়সূচি অটো-আপডেট করা যাবে।
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="detailsModal">
+    <div class="modal-content">
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="drawer-wrap" id="adminDrawerWrap">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <h2 style="margin:0;">অ্যাডমিন প্যানেল</h2>
+          <div class="small-muted">টেক্সট, ছবি, ম্যাপ ডেটা, জামাত সময়—সব কিছু এখান থেকে সহজে এডিট করুন</div>
+        </div>
+        <button class="drawer-close" onclick="closeAdmin()">×</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="admin-card">
+          <h2>সাইট টেক্সট কাস্টমাইজ</h2>
+          <div class="admin-grid">
+            <div>
+              <label class="label">ব্র্যান্ড নাম</label>
+              <input id="adminBrand" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">থিম লেবেল</label>
+              <input id="adminThemeLabel" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">উপরের ব্যাজ টেক্সট</label>
+              <input id="adminEyebrow" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">লিস্ট সেকশন টাইটেল</label>
+              <input id="adminListTitle" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">ম্যাপ টাইটেল</label>
+              <input id="adminMapTitle" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">প্রাইমারি বাটন</label>
+              <input id="adminPrimaryBtn" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">সেকেন্ডারি বাটন</label>
+              <input id="adminSecondaryBtn" class="input" type="text" />
+            </div>
+            <div>
+              <label class="label">হিরো টাইটেল</label>
+              <textarea id="adminHeroTitle" class="textarea"></textarea>
+            </div>
+            <div>
+              <label class="label">হিরো সাবটাইটেল</label>
+              <textarea id="adminHeroSubtitle" class="textarea"></textarea>
+            </div>
+            <div>
+              <label class="label">ফুটার নোট</label>
+              <textarea id="adminFooter" class="textarea"></textarea>
+            </div>
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-primary" onclick="saveSiteContent()">সাইট টেক্সট সেভ</button>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="list-header">
+            <h2 style="margin:0;">মসজিদ ম্যানেজ করুন</h2>
+            <button class="btn btn-success btn-small" onclick="prepareNewMosque()">নতুন মসজিদ যোগ করুন</button>
+          </div>
+
+          <div id="adminMosqueList" class="admin-list"></div>
+        </div>
+
+        <div class="admin-card">
+          <h2>ইমপোর্ট / এক্সপোর্ট</h2>
+          <div class="hint-box">
+            Export করলে পুরো ডেটা JSON আকারে বের হবে। Import করলে নতুন JSON পেস্ট করে সব ডেটা আপডেট করতে পারবেন।
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-secondary" onclick="exportJSON()">Export JSON</button>
+            <button class="btn btn-secondary" onclick="toggleJSONEditor()">Import / Edit JSON</button>
+            <button class="btn btn-danger" onclick="resetAllData()">সব রিসেট</button>
+          </div>
+          <div id="jsonEditorWrap" style="display:none; margin-top:14px;">
+            <label class="label">JSON ডেটা</label>
+            <textarea id="jsonEditor" class="textarea json-box"></textarea>
+            <div class="inline-actions">
+              <button class="btn btn-primary" onclick="importJSON()">JSON Apply</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer-wrap" id="editorDrawerWrap">
+    <div class="drawer">
+      <div class="drawer-head">
+        <div>
+          <h2 style="margin:0;">মসজিদ এডিটর</h2>
+          <div class="small-muted">ছবি drag & drop, টেক্সট এডিট, লোকেশন, জামাত টাইম—সব এখানে</div>
+        </div>
+        <button class="drawer-close" onclick="closeEditor()">×</button>
+      </div>
+
+      <div class="drawer-body">
+        <div class="admin-card">
+          <div class="admin-grid two">
+            <div>
+              <label class="label">মসজিদের নাম</label>
+              <input id="editName" class="input" type="text" placeholder="যেমন: খালিশপুর জামে মসজিদ" />
+            </div>
+            <div>
+              <label class="label">এলাকা</label>
+              <input id="editArea" class="input" type="text" placeholder="যেমন: খালিশপুর" />
+            </div>
+            <div>
+              <label class="label">ঠিকানা</label>
+              <input id="editAddress" class="input" type="text" placeholder="সম্পূর্ণ ঠিকানা" />
+            </div>
+            <div>
+              <label class="label">ইমাম</label>
+              <input id="editImam" class="input" type="text" placeholder="ইমামের নাম" />
+            </div>
+            <div>
+              <label class="label">Latitude</label>
+              <input id="editLat" class="input" type="number" step="0.0001" placeholder="22.8204" />
+            </div>
+            <div>
+              <label class="label">Longitude</label>
+              <input id="editLng" class="input" type="number" step="0.0001" placeholder="89.5510" />
+            </div>
+            <div>
+              <label class="label">ধারণক্ষমতা</label>
+              <input id="editCapacity" class="input" type="text" placeholder="প্রায় ২,০০০+ মুসল্লি" />
+            </div>
+            <div>
+              <label class="label">জামাত সময় (কমা দিয়ে)</label>
+              <input id="editTimes" class="input" type="text" placeholder="৭:০০ AM, ৮:০০ AM" />
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label class="label">বিশেষ নোট</label>
+            <textarea id="editNote" class="textarea" placeholder="বিশেষ নির্দেশনা বা নোট লিখুন"></textarea>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <h2>মসজিদের ছবি</h2>
+          <div>
+            <label class="label">Image URL</label>
+            <input id="editImageUrl" class="input" type="text" placeholder="https://..." />
+          </div>
+
+          <div class="section-split"></div>
+
+          <div id="dropzone" class="dropzone">
+            <div style="font-size:18px;font-weight:700;">ছবি এখানে Drag & Drop করুন</div>
+            <div class="small-muted" style="margin-top:6px;">অথবা ক্লিক করে ছবি সিলেক্ট করুন</div>
+            <input id="editImageFile" type="file" accept="image/*" style="display:none;" />
+            <img id="imagePreview" class="preview" alt="Preview" />
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="inline-actions">
+            <button class="btn btn-primary" onclick="saveMosqueFromEditor()">সেভ করুন</button>
+            <button class="btn btn-secondary" onclick="duplicateCurrentMosque()">ডুপ্লিকেট</button>
+            <button class="btn btn-danger" onclick="deleteCurrentMosque()">ডিলিট</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    const STORAGE_KEY = 'khulna-eid-admin-data-v2';
+
+    const defaultData = {
+      site: {
+        brand: 'Khulna Eid Jamat Guide',
+        eyebrow: '🌙 ঈদ মোবারক • খুলনা সিটি জামাত গাইড',
+        title: 'খুলনা শহরের ম্যাপে দেখুন<br>মসজিদের ছবি সহ ঈদের জামাতের সময়সূচি',
+        subtitle: 'এই প্রিমিয়াম ঈদ-থিম ওয়েবসাইটে আপনি খুলনা শহরের বিভিন্ন মসজিদ ম্যাপ থেকে খুঁজে দেখতে পারবেন, প্রতিটি মসজিদের ছবি, ঠিকানা, একাধিক জামাতের সময়, ধারণক্ষমতা এবং বিস্তারিত তথ্যসহ।',
+        primaryBtn: 'ম্যাপ দেখুন',
+        secondaryBtn: 'নিকটবর্তী মসজিদ',
+        themeLabel: 'ঈদের আলো',
+        listTitle: 'মসজিদ খুঁজুন',
+        mapTitle: 'খুলনা শহরের ঈদের জামাত ম্যাপ',
+        footer: 'নোট: এটি একটি ডেমো-ভিত্তিক ডাইনামিক টেমপ্লেট। আপনার আসল ওয়েবসাইটে ডেটাবেজ/API যুক্ত করে প্রতিবার ঈদের আগে নতুন সময়সূচি অটো-আপডেট করা যাবে।'
+      },
+      mosques: [
+        {
+          id: 1,
+          name: 'খালিশপুর জামে মসজিদ',
+          area: 'খালিশপুর',
+          address: 'খালিশপুর, খুলনা সিটি কর্পোরেশন',
+          image: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.8458,
+          lng: 89.5245,
+          jamatTimes: ['৭:০০ AM', '৮:০০ AM'],
+          jamat24: ['07:00', '08:00'],
+          capacity: 'প্রায় ২,০০০+ মুসল্লি',
+          imam: 'মাওলানা আব্দুল কাদের',
+          note: 'প্রধান জামাত মসজিদ প্রাঙ্গণে অনুষ্ঠিত হবে।'
+        },
+        {
+          id: 2,
+          name: 'শিববাড়ী কেন্দ্রীয় জামে মসজিদ',
+          area: 'শিববাড়ী',
+          address: 'শিববাড়ী মোড়, খুলনা',
+          image: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.8269,
+          lng: 89.5488,
+          jamatTimes: ['৭:৩০ AM', '৮:৩০ AM'],
+          jamat24: ['07:30', '08:30'],
+          capacity: 'প্রায় ১,৫০০+ মুসল্লি',
+          imam: 'হাফেজ মুফতি সাইফুল্লাহ',
+          note: 'মহিলা মুসল্লিদের জন্য আলাদা ব্যবস্থা রয়েছে।'
+        },
+        {
+          id: 3,
+          name: 'সোনাডাঙ্গা বড় মসজিদ',
+          area: 'সোনাডাঙ্গা',
+          address: 'সোনাডাঙ্গা আবাসিক এলাকা, খুলনা',
+          image: 'https://images.unsplash.com/photo-1572252009286-268acec5ca0a?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.8137,
+          lng: 89.5407,
+          jamatTimes: ['৭:১৫ AM', '৮:১৫ AM'],
+          jamat24: ['07:15', '08:15'],
+          capacity: 'প্রায় ২,৩০০+ মুসল্লি',
+          imam: 'কারি মোঃ নাসির উদ্দিন',
+          note: 'খোলা মাঠে অতিরিক্ত জামাতের ব্যবস্থা থাকতে পারে।'
+        },
+        {
+          id: 4,
+          name: 'রূপসা ঘাট জামে মসজিদ',
+          area: 'রূপসা',
+          address: 'রূপসা ফেরিঘাট সংলগ্ন এলাকা',
+          image: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.7998,
+          lng: 89.5769,
+          jamatTimes: ['৭:০০ AM', '৮:০০ AM', '৯:০০ AM'],
+          jamat24: ['07:00', '08:00', '09:00'],
+          capacity: 'প্রায় ১,৮০০+ মুসল্লি',
+          imam: 'মাওলানা ফখরুল ইসলাম',
+          note: 'যানজট এড়াতে আগে পৌঁছানোর অনুরোধ করা হচ্ছে।'
+        },
+        {
+          id: 5,
+          name: 'নিউ মার্কেট জামে মসজিদ',
+          area: 'নিউ মার্কেট',
+          address: 'নিউ মার্কেট এলাকা, খুলনা',
+          image: 'https://images.unsplash.com/photo-1614594854520-9ca42a0c7d8f?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.8132,
+          lng: 89.5539,
+          jamatTimes: ['৭:৪৫ AM'],
+          jamat24: ['07:45'],
+          capacity: 'প্রায় ১,১০০+ মুসল্লি',
+          imam: 'মাওলানা রাশেদুল হাসান',
+          note: 'একটিমাত্র প্রধান জামাত অনুষ্ঠিত হবে।'
+        },
+        {
+          id: 6,
+          name: 'দৌলতপুর কেন্দ্রীয় ঈদগাহ মসজিদ',
+          area: 'দৌলতপুর',
+          address: 'দৌলতপুর বাসস্ট্যান্ডের নিকটবর্তী এলাকা',
+          image: 'https://images.unsplash.com/photo-1542816417-0983670d7f62?auto=format&fit=crop&w=1200&q=80',
+          lat: 22.8717,
+          lng: 89.5282,
+          jamatTimes: ['৭:১৫ AM', '৮:১৫ AM'],
+          jamat24: ['07:15', '08:15'],
+          capacity: 'প্রায় ২,৮০০+ মুসল্লি',
+          imam: 'মুফতি আবু বকর সিদ্দিক',
+          note: 'ঈদগাহ মাঠে প্রধান জামাত, বৃষ্টির ক্ষেত্রে ইনডোর ব্যবস্থা থাকবে।'
+        }
+      ]
+    };
+
+    let appData = loadData();
+    let map;
+    let markers = [];
+    let activeId = null;
+    let editingMosqueId = null;
+
+    const searchInput = document.getElementById('searchInput');
+    const areaFilter = document.getElementById('areaFilter');
+    const timeFilter = document.getElementById('timeFilter');
+    const mosqueList = document.getElementById('mosqueList');
+    const resultCount = document.getElementById('resultCount');
+    const totalMosques = document.getElementById('totalMosques');
+    const firstJamat = document.getElementById('firstJamat');
+    const detailsModal = document.getElementById('detailsModal');
+    const modalBody = document.getElementById('modalBody');
+    const adminDrawerWrap = document.getElementById('adminDrawerWrap');
+    const editorDrawerWrap = document.getElementById('editorDrawerWrap');
+    const adminMosqueList = document.getElementById('adminMosqueList');
+    const dropzone = document.getElementById('dropzone');
+    const editImageFile = document.getElementById('editImageFile');
+    const imagePreview = document.getElementById('imagePreview');
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : structuredClone(defaultData);
+      } catch (error) {
+        return structuredClone(defaultData);
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    function showToast(message, type = 'success') {
+      const wrap = document.getElementById('toastWrap');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      wrap.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 2600);
+    }
+
+    function initMap() {
+      map = L.map('map', { zoomControl: true }).setView([22.8204, 89.5510], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      refreshUI();
+    }
+
+    function refreshUI() {
+      renderSiteContent();
+      populateAreas();
+      renderStats();
+      renderList(getCurrentFilteredData());
+      renderMarkers(getCurrentFilteredData());
+      renderAdminList();
+      hydrateAdminSiteInputs();
+    }
+
+    function renderSiteContent() {
+      const s = appData.site;
+      document.getElementById('siteBrand').textContent = s.brand;
+      document.getElementById('heroEyebrow').textContent = s.eyebrow;
+      document.getElementById('heroTitle').innerHTML = s.title;
+      document.getElementById('heroSubtitle').textContent = s.subtitle;
+      document.getElementById('heroPrimaryBtn').textContent = s.primaryBtn;
+      document.getElementById('heroSecondaryBtn').textContent = s.secondaryBtn;
+      document.getElementById('themeLabel').textContent = s.themeLabel;
+      document.getElementById('listPanelTitle').textContent = s.listTitle;
+      document.getElementById('mapTitle').textContent = s.mapTitle;
+      document.getElementById('footerNote').textContent = s.footer;
+    }
+
+    function hydrateAdminSiteInputs() {
+      const s = appData.site;
+      document.getElementById('adminBrand').value = s.brand;
+      document.getElementById('adminThemeLabel').value = s.themeLabel;
+      document.getElementById('adminEyebrow').value = s.eyebrow;
+      document.getElementById('adminListTitle').value = s.listTitle;
+      document.getElementById('adminMapTitle').value = s.mapTitle;
+      document.getElementById('adminPrimaryBtn').value = s.primaryBtn;
+      document.getElementById('adminSecondaryBtn').value = s.secondaryBtn;
+      document.getElementById('adminHeroTitle').value = s.title.replace(/<br\s*\/?>/gi, '\n');
+      document.getElementById('adminHeroSubtitle').value = s.subtitle;
+      document.getElementById('adminFooter').value = s.footer;
+    }
+
+    function saveSiteContent() {
+      appData.site.brand = document.getElementById('adminBrand').value.trim() || defaultData.site.brand;
+      appData.site.themeLabel = document.getElementById('adminThemeLabel').value.trim() || defaultData.site.themeLabel;
+      appData.site.eyebrow = document.getElementById('adminEyebrow').value.trim() || defaultData.site.eyebrow;
+      appData.site.listTitle = document.getElementById('adminListTitle').value.trim() || defaultData.site.listTitle;
+      appData.site.mapTitle = document.getElementById('adminMapTitle').value.trim() || defaultData.site.mapTitle;
+      appData.site.primaryBtn = document.getElementById('adminPrimaryBtn').value.trim() || defaultData.site.primaryBtn;
+      appData.site.secondaryBtn = document.getElementById('adminSecondaryBtn').value.trim() || defaultData.site.secondaryBtn;
+      appData.site.title = (document.getElementById('adminHeroTitle').value.trim() || defaultData.site.title).replace(/\n/g, '<br>');
+      appData.site.subtitle = document.getElementById('adminHeroSubtitle').value.trim() || defaultData.site.subtitle;
+      appData.site.footer = document.getElementById('adminFooter').value.trim() || defaultData.site.footer;
+      saveData();
+      renderSiteContent();
+      showToast('সাইটের টেক্সট সেভ হয়েছে');
+    }
+
+    function createIcon(isActive = false) {
+      const color = isActive ? '#e3c16b' : '#7fe4b0';
+      return L.divIcon({
+        className: '',
+        html: `
+          <div style="
+            width: 20px;
+            height: 20px;
+            background:${color};
+            border:3px solid rgba(16,32,24,0.95);
+            border-radius:50%;
+            box-shadow:0 0 0 7px ${isActive ? 'rgba(227,193,107,0.18)' : 'rgba(127,228,176,0.14)'};
+          "></div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -8]
+      });
+    }
+
+    function renderMarkers(data) {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+
+      data.forEach(item => {
+        const marker = L.marker([item.lat, item.lng], {
+          icon: createIcon(item.id === activeId)
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div class="popup-card">
+            <img src="${item.image}" alt="${item.name}">
+            <h3>${item.name}</h3>
+            <p>${item.address}</p>
+            <p><strong>জামাত:</strong> ${item.jamatTimes.join(' • ')}</p>
+            <p><strong>এলাকা:</strong> ${item.area}</p>
+            <p><button onclick="openDetails(${item.id})" style="margin-top:6px;padding:10px 12px;border:0;border-radius:10px;background:linear-gradient(135deg,#e3c16b,#bf9437);color:#1c1508;font-family:inherit;font-weight:700;cursor:pointer;">বিস্তারিত দেখুন</button></p>
+          </div>
+        `, { className: 'custom-popup' });
+
+        marker.on('click', () => setActive(item.id, true));
+        markers.push(marker);
+      });
+    }
+
+    function renderList(data) {
+      mosqueList.innerHTML = '';
+      resultCount.textContent = `${data.length} টি ফলাফল`;
+
+      if (!data.length) {
+        mosqueList.innerHTML = `
+          <div class="mosque-card" style="grid-template-columns:1fr; cursor:default;">
+            <div>
+              <h3 class="mosque-name">কোনো ফলাফল পাওয়া যায়নি</h3>
+              <div class="mosque-meta">সার্চ বা ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      data.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `mosque-card ${activeId === item.id ? 'active' : ''}`;
+        card.onclick = () => setActive(item.id, true);
+        card.innerHTML = `
+          <img class="mosque-thumb" src="${item.image}" alt="${item.name}">
+          <div>
+            <h3 class="mosque-name">${item.name}</h3>
+            <div class="mosque-meta">${item.area} • ${item.address}</div>
+            <div class="mosque-time"><strong>জামাত:</strong> ${item.jamatTimes.join(' • ')}</div>
+          </div>
+        `;
+        mosqueList.appendChild(card);
+      });
+    }
+
+    function renderAdminList() {
+      adminMosqueList.innerHTML = '';
+      appData.mosques.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `admin-item ${editingMosqueId === item.id ? 'active' : ''}`;
+        card.onclick = () => openEditor(item.id);
+        card.innerHTML = `
+          <img class="admin-thumb" src="${item.image}" alt="${item.name}">
+          <div>
+            <div class="mosque-name">${item.name}</div>
+            <div class="mosque-meta">${item.area}</div>
+            <div class="mosque-time"><strong>জামাত:</strong> ${item.jamatTimes.join(' • ')}</div>
+          </div>
+        `;
+        adminMosqueList.appendChild(card);
+      });
+    }
+
+    function renderStats() {
+      totalMosques.textContent = appData.mosques.length;
+      const earliest = appData.mosques.flatMap(m => m.jamat24).sort()[0];
+      firstJamat.textContent = earliest || '--:--';
+    }
+
+    function populateAreas() {
+      const previous = areaFilter.value || 'all';
+      areaFilter.innerHTML = '<option value="all">সব এলাকা</option>';
+      const areas = [...new Set(appData.mosques.map(m => m.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'bn'));
+      areas.forEach(area => {
+        const option = document.createElement('option');
+        option.value = area;
+        option.textContent = area;
+        areaFilter.appendChild(option);
+      });
+      areaFilter.value = areas.includes(previous) ? previous : 'all';
+    }
+
+    function filterMosques() {
+      const filtered = getCurrentFilteredData();
+      renderList(filtered);
+      renderMarkers(filtered);
+      if (filtered.length) {
+        const bounds = L.latLngBounds(filtered.map(i => [i.lat, i.lng]));
+        map.fitBounds(bounds, { padding: [40, 40] });
+      }
+    }
+
+    function getCurrentFilteredData() {
+      const query = searchInput.value.trim().toLowerCase();
+      const area = areaFilter.value;
+      const time = timeFilter.value;
+
+      return appData.mosques.filter(item => {
+        const textMatch =
+          item.name.toLowerCase().includes(query) ||
+          item.area.toLowerCase().includes(query) ||
+          item.address.toLowerCase().includes(query);
+        const areaMatch = area === 'all' || item.area === area;
+        const timeMatch = time === 'all' || item.jamat24.some(t => t <= time);
+        return textMatch && areaMatch && timeMatch;
+      });
+    }
+
+    function setActive(id, openPopup = false) {
+      activeId = id;
+      const filtered = getCurrentFilteredData();
+      const item = appData.mosques.find(m => m.id === id);
+      if (!item) return;
+
+      renderList(filtered);
+      renderMarkers(filtered);
+      map.flyTo([item.lat, item.lng], 14, { duration: 0.8 });
+
+      const markerIndex = filtered.findIndex(m => m.id === id);
+      if (openPopup && markerIndex > -1 && markers[markerIndex]) {
+        markers[markerIndex].openPopup();
+      }
+    }
+
+    function openDetails(id) {
+      const item = appData.mosques.find(m => m.id === id);
+      if (!item) return;
+      modalBody.innerHTML = `
+        <div class="modal-grid">
+          <div>
+            <img class="modal-image" src="${item.image}" alt="${item.name}">
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:10px;">🕌 ঈদের জামাত তথ্য</div>
+            <h2 class="modal-title">${item.name}</h2>
+            <div class="chip-row">
+              <span class="chip">${item.area}</span>
+              <span class="chip">${item.capacity}</span>
+            </div>
+            <div class="modal-info">
+              <strong class="gold">ঠিকানা:</strong> ${item.address}<br>
+              <strong class="gold">জামাতের সময়:</strong> ${item.jamatTimes.join(' • ')}<br>
+              <strong class="gold">ইমাম:</strong> ${item.imam}<br>
+              <strong class="gold">বিশেষ নোট:</strong> ${item.note}
+            </div>
+            <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="zoomToMosque(${item.id})">ম্যাপে দেখুন</button>
+              <button class="btn btn-secondary" onclick="closeModal()">বন্ধ করুন</button>
+            </div>
+          </div>
+        </div>
+      `;
+      detailsModal.classList.add('show');
+    }
+
+    function closeModal() {
+      detailsModal.classList.remove('show');
+    }
+
+    function zoomToMosque(id) {
+      closeModal();
+      setActive(id, true);
+    }
+
+    function resetFilters() {
+      searchInput.value = '';
+      areaFilter.value = 'all';
+      timeFilter.value = 'all';
+      activeId = null;
+      renderList(appData.mosques);
+      renderMarkers(appData.mosques);
+      map.setView([22.8204, 89.5510], 12);
+    }
+
+    function scrollToMap() {
+      document.getElementById('mapSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function focusNearest() {
+      if (!navigator.geolocation) {
+        showToast('আপনার ব্রাউজারে লোকেশন সাপোর্ট নেই', 'error');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        let nearest = null;
+        let minDistance = Infinity;
+
+        appData.mosques.forEach(item => {
+          const distance = getDistance(latitude, longitude, item.lat, item.lng);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearest = item;
+          }
+        });
+
+        if (nearest) setActive(nearest.id, true);
+      }, () => {
+        showToast('লোকেশন নেওয়া যায়নি। ব্রাউজার পারমিশন দিন', 'error');
+      });
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    function openAdmin() {
+      adminDrawerWrap.classList.add('show');
+    }
+
+    function closeAdmin() {
+      adminDrawerWrap.classList.remove('show');
+    }
+
+    function openEditor(id) {
+      const mosque = appData.mosques.find(m => m.id === id);
+      if (!mosque) return;
+      editingMosqueId = id;
+      renderAdminList();
+      fillEditorForm(mosque);
+      editorDrawerWrap.classList.add('show');
+    }
+
+    function closeEditor() {
+      editorDrawerWrap.classList.remove('show');
+    }
+
+    function prepareNewMosque() {
+      editingMosqueId = null;
+      renderAdminList();
+      fillEditorForm({
+        name: '', area: '', address: '', imam: '', lat: '', lng: '', capacity: '', note: '', image: '', jamatTimes: []
+      });
+      editorDrawerWrap.classList.add('show');
+    }
+
+    function fillEditorForm(m) {
+      document.getElementById('editName').value = m.name || '';
+      document.getElementById('editArea').value = m.area || '';
+      document.getElementById('editAddress').value = m.address || '';
+      document.getElementById('editImam').value = m.imam || '';
+      document.getElementById('editLat').value = m.lat || '';
+      document.getElementById('editLng').value = m.lng || '';
+      document.getElementById('editCapacity').value = m.capacity || '';
+      document.getElementById('editTimes').value = (m.jamatTimes || []).join(', ');
+      document.getElementById('editNote').value = m.note || '';
+      document.getElementById('editImageUrl').value = m.image || '';
+      imagePreview.src = m.image || '';
+      imagePreview.style.display = m.image ? 'block' : 'none';
+    }
+
+    function saveMosqueFromEditor() {
+      const name = document.getElementById('editName').value.trim();
+      const area = document.getElementById('editArea').value.trim();
+      const address = document.getElementById('editAddress').value.trim();
+      const imam = document.getElementById('editImam').value.trim();
+      const lat = parseFloat(document.getElementById('editLat').value);
+      const lng = parseFloat(document.getElementById('editLng').value);
+      const capacity = document.getElementById('editCapacity').value.trim();
+      const note = document.getElementById('editNote').value.trim();
+      const image = document.getElementById('editImageUrl').value.trim() || imagePreview.src || '';
+      const timesText = document.getElementById('editTimes').value.trim();
+
+      if (!name || !area || !address || Number.isNaN(lat) || Number.isNaN(lng)) {
+        showToast('নাম, এলাকা, ঠিকানা, latitude, longitude আবশ্যক', 'error');
+        return;
+      }
+
+      const jamatTimes = timesText.split(',').map(t => t.trim()).filter(Boolean);
+      const jamat24 = jamatTimes.map(convertBanglaTimeTo24).filter(Boolean);
+
+      const payload = {
+        id: editingMosqueId || Date.now(),
+        name,
+        area,
+        address,
+        imam,
+        lat,
+        lng,
+        capacity,
+        note,
+        image: image || 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1200&q=80',
+        jamatTimes,
+        jamat24
+      };
+
+      if (editingMosqueId) {
+        appData.mosques = appData.mosques.map(m => m.id === editingMosqueId ? payload : m);
+        showToast('মসজিদের তথ্য আপডেট হয়েছে');
+      } else {
+        appData.mosques.unshift(payload);
+        editingMosqueId = payload.id;
+        showToast('নতুন মসজিদ যোগ হয়েছে');
+      }
+
+      saveData();
+      refreshUI();
+      closeEditor();
+    }
+
+    function duplicateCurrentMosque() {
+      if (!editingMosqueId) {
+        showToast('প্রথমে একটি মসজিদ সিলেক্ট করুন', 'error');
+        return;
+      }
+      const mosque = appData.mosques.find(m => m.id === editingMosqueId);
+      if (!mosque) return;
+      const copy = { ...structuredClone(mosque), id: Date.now(), name: mosque.name + ' (Copy)' };
+      appData.mosques.unshift(copy);
+      saveData();
+      refreshUI();
+      showToast('মসজিদ ডুপ্লিকেট হয়েছে');
+    }
+
+    function deleteCurrentMosque() {
+      if (!editingMosqueId) {
+        showToast('ডিলিট করার জন্য একটি মসজিদ সিলেক্ট করুন', 'error');
+        return;
+      }
+      const mosque = appData.mosques.find(m => m.id === editingMosqueId);
+      if (!mosque) return;
+      const ok = confirm(`আপনি কি "${mosque.name}" ডিলিট করতে চান?`);
+      if (!ok) return;
+      appData.mosques = appData.mosques.filter(m => m.id !== editingMosqueId);
+      editingMosqueId = null;
+      saveData();
+      refreshUI();
+      closeEditor();
+      showToast('মসজিদ ডিলিট হয়েছে');
+    }
+
+    function convertBanglaTimeTo24(timeStr) {
+      if (!timeStr) return null;
+      const normalizedDigits = timeStr.replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d));
+      const match = normalizedDigits.match(/(\d{1,2})\s*[:.]\s*(\d{2})\s*(AM|PM|am|pm)?/);
+      if (!match) return null;
+      let hour = parseInt(match[1], 10);
+      const minute = match[2];
+      const period = (match[3] || '').toUpperCase();
+      if (period === 'PM' && hour !== 12) hour += 12;
+      if (period === 'AM' && hour === 12) hour = 0;
+      return `${String(hour).padStart(2, '0')}:${minute}`;
+    }
+
+    function exportJSON() {
+      const json = JSON.stringify(appData, null, 2);
+      navigator.clipboard.writeText(json).then(() => {
+        showToast('JSON কপি হয়েছে');
+      }).catch(() => {
+        showToast('Clipboard এ কপি করা যায়নি', 'error');
+      });
+    }
+
+    function toggleJSONEditor() {
+      const wrap = document.getElementById('jsonEditorWrap');
+      const editor = document.getElementById('jsonEditor');
+      const isHidden = wrap.style.display === 'none' || !wrap.style.display;
+      wrap.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) editor.value = JSON.stringify(appData, null, 2);
+    }
+
+    function importJSON() {
+      try {
+        const raw = document.getElementById('jsonEditor').value;
+        const parsed = JSON.parse(raw);
+        if (!parsed.site || !Array.isArray(parsed.mosques)) {
+          throw new Error('Invalid data structure');
+        }
+        appData = parsed;
+        saveData();
+        refreshUI();
+        showToast('JSON সফলভাবে Apply হয়েছে');
+      } catch (error) {
+        showToast('JSON format সঠিক নয়', 'error');
+      }
+    }
+
+    function resetAllData() {
+      const ok = confirm('সব ডেটা ডিফল্ট অবস্থায় রিসেট করতে চান?');
+      if (!ok) return;
+      appData = structuredClone(defaultData);
+      saveData();
+      editingMosqueId = null;
+      activeId = null;
+      refreshUI();
+      showToast('সব ডেটা রিসেট হয়েছে');
+    }
+
+    dropzone.addEventListener('click', () => editImageFile.click());
+
+    editImageFile.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) handleImageFile(file);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer.files?.[0];
+      if (file) handleImageFile(file);
+    });
+
+    function handleImageFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('শুধু image file দিন', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        document.getElementById('editImageUrl').value = dataUrl;
+        imagePreview.src = dataUrl;
+        imagePreview.style.display = 'block';
+        showToast('ছবি আপলোড হয়েছে');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('editImageUrl').addEventListener('input', (e) => {
+      const value = e.target.value.trim();
+      imagePreview.src = value;
+      imagePreview.style.display = value ? 'block' : 'none';
+    });
+
+    searchInput.addEventListener('input', filterMosques);
+    areaFilter.addEventListener('change', filterMosques);
+    timeFilter.addEventListener('change', filterMosques);
+
+    detailsModal.addEventListener('click', (e) => {
+      if (e.target === detailsModal) closeModal();
+    });
+
+    adminDrawerWrap.addEventListener('click', (e) => {
+      if (e.target === adminDrawerWrap) closeAdmin();
+    });
+
+    editorDrawerWrap.addEventListener('click', (e) => {
+      if (e.target === editorDrawerWrap) closeEditor();
+    });
+
+    initMap();
+  </script>
+</body>
+</html>
