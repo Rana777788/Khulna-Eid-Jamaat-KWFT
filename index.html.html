@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khulna Eid Jamaat Guide</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+  <style>
+    :root{
+      --bg:#07120d;
+      --line:rgba(226,190,98,0.22);
+      --text:#f5f0df;
+      --muted:#d4ccb2;
+      --gold:#ddb65f;
+      --gold2:#c79a3a;
+      --shadow:0 16px 35px rgba(0,0,0,0.32);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:'Hind Siliguri',sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(221,182,95,0.12), transparent 20%),
+        radial-gradient(circle at 20% 20%, rgba(44,122,88,0.12), transparent 18%),
+        linear-gradient(180deg,#08120d 0%,#07110c 100%);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size:26px 26px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.35), transparent 85%);
+    }
+    .container{width:min(1440px, calc(100% - 28px));margin:16px auto 28px;position:relative;z-index:2}
+    .glass{
+      background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+    .topbar{
+      border-radius:26px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px;
+    }
+    .brand{display:flex;align-items:center;gap:14px;min-width:0}
+    .brand-icon{
+      width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--gold),var(--gold2));
+      display:grid;place-items:center;color:#2b1d08;font-size:28px;font-weight:700;flex-shrink:0;
+    }
+    .brand-text{font-size:18px;font-weight:700;line-height:1.25}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:0;cursor:pointer;font-family:inherit;font-weight:700;padding:14px 22px;border-radius:18px;
+      transition:.22s ease;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .btn:hover{transform:translateY(-2px)}
+    .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#261c09}
+    .btn-dark{background:rgba(255,255,255,0.07);color:var(--text);border:1px solid rgba(255,255,255,.10)}
+    .hero{border-radius:34px;padding:34px;margin-bottom:22px;position:relative;overflow:hidden}
+    .hero::after{
+      content:"";position:absolute;width:340px;height:340px;right:-60px;top:-30px;
+      background:radial-gradient(circle, rgba(221,182,95,.16), transparent 65%);pointer-events:none;
+    }
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;
+      border:1px solid rgba(221,182,95,.22);background:rgba(221,182,95,.08);
+      color:var(--gold);font-weight:600;margin-bottom:18px;font-size:15px;
+    }
+    .hero h1{margin:0 0 12px;font-size:clamp(38px, 6vw, 74px);line-height:1.02;letter-spacing:-1px;max-width:860px}
+    .hero p{margin:0;max-width:900px;color:var(--muted);font-size:clamp(18px, 2.2vw, 22px);line-height:1.65}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+    .stat-card{border-radius:26px;padding:22px}
+    .stat-label{color:var(--muted);font-size:18px;margin-bottom:8px}
+    .stat-value{color:var(--gold);font-size:38px;font-weight:700;line-height:1.1}
+    .section{border-radius:34px;padding:22px;margin-bottom:22px}
+    .section-title{font-size:34px;font-weight:700;margin:0 0 18px;line-height:1.2}
+    .filters{display:grid;gap:14px;margin-bottom:18px}
+    .input,.select{
+      width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);border-radius:18px;color:var(--text);
+      padding:18px 18px;outline:none;font-family:inherit;font-size:16px;font-weight:600;
+    }
+    .input::placeholder{color:rgba(255,255,255,.60)}
+    .list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+    .result-text{color:var(--gold);font-size:18px;font-weight:700}
+    .mosque-list{display:grid;gap:18px;max-height:880px;overflow:auto;padding-right:4px}
+    .mosque-card{
+      display:grid;grid-template-columns:140px 1fr;gap:18px;padding:16px;border-radius:28px;cursor:pointer;transition:.22s ease;
+    }
+    .mosque-card:hover{transform:translateY(-2px);border-color:rgba(221,182,95,.35)}
+    .mosque-thumb{
+      width:100%;height:122px;object-fit:cover;border-radius:20px;border:1px solid rgba(255,255,255,.10);background:#122019;
+    }
+    .mosque-name{margin:0 0 4px;font-size:24px;line-height:1.2;font-weight:700}
+    .mosque-meta{color:var(--muted);font-size:17px;line-height:1.55;margin-top:4px}
+    .mosque-time{color:var(--gold);font-weight:700;margin-top:6px;font-size:18px}
+    .map-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:16px}
+    .legend span{display:flex;align-items:center;gap:8px}
+    .dot{width:16px;height:16px;border-radius:50%;display:inline-block}
+    .dot.active{background:var(--gold)}
+    .dot.normal{background:#78ddb2}
+    #map{height:760px;border-radius:28px;overflow:hidden;border:1px solid rgba(221,182,95,.22)}
+    .custom-popup .leaflet-popup-content-wrapper{
+      background:#102019;color:#fff3df;border-radius:18px;border:1px solid rgba(221,182,95,.24);box-shadow:0 16px 30px rgba(0,0,0,.35);
+    }
+    .custom-popup .leaflet-popup-tip{background:#102019}
+    .popup-card img{width:100%;height:120px;object-fit:cover;border-radius:12px;margin-bottom:8px}
+    .popup-card h3{margin:0 0 6px;font-size:18px}
+    .popup-card p{margin:4px 0;color:#d7cfb5;font-size:14px;line-height:1.5}
+    .modal{
+      position:fixed;inset:0;background:rgba(0,0,0,.58);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999;
+    }
+    .modal.show{display:flex}
+    .modal-box{width:min(920px, 100%);max-height:92vh;overflow:auto;border-radius:30px;padding:20px}
+    .modal-top{display:flex;justify-content:flex-end;margin-bottom:10px}
+    .close-btn{
+      width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.08);color:#fff;font-size:22px;cursor:pointer;
+    }
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    .modal-image{width:100%;height:320px;object-fit:cover;border-radius:22px;border:1px solid rgba(255,255,255,.08)}
+    .modal-title{margin:0 0 12px;font-size:clamp(28px,4vw,40px);line-height:1.15}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 16px}
+    .chip{
+      padding:10px 14px;border-radius:999px;background:rgba(221,182,95,.09);
+      color:var(--gold);border:1px solid rgba(221,182,95,.22);font-size:15px;font-weight:700;
+    }
+    .modal-info{color:var(--muted);line-height:1.8;font-size:17px}
+    .footer-note{text-align:center;color:var(--muted);margin-top:18px;font-size:15px;line-height:1.7}
+    @media (max-width:980px){
+      .stats{grid-template-columns:1fr}
+      .modal-grid{grid-template-columns:1fr}
+      #map{height:560px}
+      .hero{padding:24px}
+      .section{padding:18px}
+    }
+    @media (max-width:720px){
+      .container{width:min(100% - 14px, 100%)}
+      .topbar{padding:14px}
+      .hero{padding:18px;border-radius:26px}
+      .hero h1{font-size:44px}
+      .hero p{font-size:18px}
+      .section{border-radius:26px;padding:14px}
+      .stat-card{border-radius:22px;padding:18px}
+      .mosque-card{grid-template-columns:96px 1fr;gap:14px;padding:14px;border-radius:22px}
+      .mosque-thumb{height:92px;border-radius:16px}
+      .mosque-name{font-size:18px}
+      .mosque-meta,.mosque-time{font-size:15px}
+      .section-title{font-size:26px}
+      #map{height:420px}
+      .brand-text{font-size:16px}
+      .brand-icon{width:48px;height:48px;font-size:22px}
+      .top-actions{width:100%}
+      .top-actions .btn{flex:1}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header class="topbar glass">
+      <div class="brand">
+        <div class="brand-icon">🌙</div>
+        <div class="brand-text" id="brandText">Khulna Eid Jamaat Guide by KWFT</div>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn btn-dark" onclick="scrollToMap()">ম্যাপ দেখুন</button>
+        <button class="btn btn-gold" onclick="scrollToList()">জামাত খুঁজুন</button>
+      </div>
+    </header>
+
+    <section class="hero glass">
+      <div class="eyebrow" id="eyebrowText">🌙 ঈদ মোবারক • ঈদের জামাত গাইড</div>
+      <h1 id="heroTitle">ঈদের জামাতের সময়সূচি</h1>
+      <p id="heroSubtitle">খুলনা শহরের বিভিন্ন মসজিদ ম্যাপ থেকে খুঁজে দেখতে পারবেন, প্রতিটি মসজিদের ঠিকানা, জামাতের সময়, ধারণক্ষমতা এবং বিস্তারিত তথ্যসহ।</p>
+
+      <div class="hero-actions">
+        <button class="btn btn-gold" onclick="scrollToMap()">ম্যাপ দেখুন</button>
+        <button class="btn btn-dark" onclick="focusNearest()">নিকটবর্তী মসজিদ</button>
+      </div>
+    </section>
+
+    <div class="stats">
+      <div class="stat-card glass">
+        <div class="stat-label">মোট মসজিদ</div>
+        <div class="stat-value" id="totalMosques">0</div>
+      </div>
+      <div class="stat-card glass">
+        <div class="stat-label">প্রথম জামাত</div>
+        <div class="stat-value" id="firstJamat">--:--</div>
+      </div>
+      <div class="stat-card glass">
+        <div class="stat-label">সর্বশেষ জামাত</div>
+        <div class="stat-value" id="lastJamat">--:--</div>
+      </div>
+    </div>
+
+    <section class="section glass" id="listSection">
+      <h2 class="section-title">মসজিদ খুঁজুন</h2>
+
+      <div class="filters">
+        <input type="text" id="searchInput" class="input" placeholder="মসজিদের নাম / এলাকা লিখুন">
+        <select id="areaFilter" class="select">
+          <option value="all">সব এলাকা</option>
+        </select>
+        <select id="timeFilter" class="select">
+          <option value="all">সব জামাত</option>
+          <option value="07:00">সকাল ৭ টার আগে</option>
+          <option value="07:30">সকাল ৭:৩০ টার আগে</option>
+          <option value="08:00">সকাল ৮ টার আগে</option>
+          <option value="09:00">সকাল ৯ টার আগে</option>
+        </select>
+      </div>
+
+      <div class="list-head">
+        <div class="result-text" id="resultCount">0 টি ফলাফল</div>
+        <button class="btn btn-dark" onclick="resetFilters()">রিসেট</button>
+      </div>
+
+      <div class="mosque-list" id="mosqueList"></div>
+    </section>
+
+    <section class="section glass" id="mapSection">
+      <div class="map-head">
+        <h2 class="section-title" style="margin:0;">খুলনা শহরের ঈদের জামাত ম্যাপ</h2>
+        <div class="legend">
+          <span><i class="dot active"></i> নির্বাচিত মসজিদ</span>
+          <span><i class="dot normal"></i> অন্যান্য মসজিদ</span>
+        </div>
+      </div>
+
+      <div id="map"></div>
+      <div class="footer-note">নোট: সময়সূচি প্রকাশের আগে সব তথ্য আরেকবার যাচাই করে আপডেট করুন।</div>
+    </section>
+  </div>
+
+  <div class="modal" id="detailsModal">
+    <div class="modal-box glass">
+      <div class="modal-top">
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsf6RU_psmX_5eGIfaLdJewuPxYrtw7v0",
+      authDomain: "eid-jammat-khulna.firebaseapp.com",
+      projectId: "eid-jammat-khulna",
+      storageBucket: "eid-jammat-khulna.firebasestorage.app",
+      messagingSenderId: "748662571074",
+      appId: "1:748662571074:web:9ff8b777b1236993792ddb",
+      measurementId: "G-L11Z34CYMJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const docRef = doc(db, "siteData", "main");
+
+    let appData = {
+      siteContent: {
+        brand: "Khulna Eid Jamaat Guide by KWFT",
+        eyebrow: "🌙 ঈদ মোবারক • ঈদের জামাত গাইড",
+        title: "ঈদের জামাতের সময়সূচি",
+        subtitle: "খুলনা শহরের বিভিন্ন মসজিদ ম্যাপ থেকে খুঁজে দেখতে পারবেন, প্রতিটি মসজিদের ঠিকানা, জামাতের সময়, ধারণক্ষমতা এবং বিস্তারিত তথ্যসহ।"
+      },
+      mosques: []
+    };
+
+    let map;
+    let markers = [];
+    let activeId = null;
+
+    const searchInput = document.getElementById("searchInput");
+    const areaFilter = document.getElementById("areaFilter");
+    const timeFilter = document.getElementById("timeFilter");
+    const resultCount = document.getElementById("resultCount");
+    const mosqueList = document.getElementById("mosqueList");
+    const modal = document.getElementById("detailsModal");
+    const modalBody = document.getElementById("modalBody");
+
+    function initSiteContent(){
+      const site = appData.siteContent || {};
+      document.getElementById("brandText").textContent = site.brand || "Khulna Eid Jamaat Guide by KWFT";
+      document.getElementById("eyebrowText").textContent = site.eyebrow || "🌙 ঈদ মোবারক • ঈদের জামাত গাইড";
+      document.getElementById("heroTitle").textContent = site.title || "ঈদের জামাতের সময়সূচি";
+      document.getElementById("heroSubtitle").textContent = site.subtitle || "";
+    }
+
+    function convertToSortableTimeText(text) {
+      if (!text) return null;
+
+      const normalized = String(text)
+        .replace(/[০-৯]/g, d => '০১২৩৪৫৬৭৮৯'.indexOf(d))
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const matches = [...normalized.matchAll(/(\d{1,2})[:.](\d{2})|(\d{1,2})\s*(টা|tar|ta)/gi)];
+      if (!matches.length) return null;
+
+      const last = matches[matches.length - 1];
+
+      let hour;
+      let minute;
+
+      if (last[1] && last[2]) {
+        hour = parseInt(last[1], 10);
+        minute = last[2];
+      } else if (last[3]) {
+        hour = parseInt(last[3], 10);
+        minute = "00";
+      } else {
+        return null;
+      }
+
+      if (Number.isNaN(hour)) return null;
+
+      return `${String(hour).padStart(2, "0")}:${minute}`;
+    }
+
+    function extractFirstValidTime(times = []) {
+      const all = times
+        .map(t => convertToSortableTimeText(t))
+        .filter(Boolean)
+        .sort();
+
+      return all[0] || null;
+    }
+
+    function extractLastValidTime(times = []) {
+      const all = times
+        .map(t => convertToSortableTimeText(t))
+        .filter(Boolean)
+        .sort();
+
+      return all[all.length - 1] || null;
+    }
+
+    function initStats(){
+      const mosques = appData.mosques || [];
+      document.getElementById("totalMosques").textContent = mosques.length;
+
+      const allTimes = mosques
+        .flatMap(m => (m.jamatTimes || []).map(t => convertToSortableTimeText(t)))
+        .filter(Boolean)
+        .sort();
+
+      document.getElementById("firstJamat").textContent = allTimes[0] || "--:--";
+      document.getElementById("lastJamat").textContent = allTimes[allTimes.length - 1] || "--:--";
+    }
+
+    function populateAreas(){
+      const previous = areaFilter.value || "all";
+      areaFilter.innerHTML = '<option value="all">সব এলাকা</option>';
+      const areas = [...new Set((appData.mosques || []).map(m => m.area).filter(Boolean))]
+        .sort((a,b)=>a.localeCompare(b,'bn'));
+
+      areas.forEach(area=>{
+        const option = document.createElement("option");
+        option.value = area;
+        option.textContent = area;
+        areaFilter.appendChild(option);
+      });
+
+      areaFilter.value = areas.includes(previous) ? previous : "all";
+    }
+
+    function getFilteredMosques(){
+      const mosques = appData.mosques || [];
+      const q = searchInput.value.trim().toLowerCase();
+      const area = areaFilter.value;
+      const time = timeFilter.value;
+
+      return mosques
+        .filter(item=>{
+          const textMatch =
+            (item.name || "").toLowerCase().includes(q) ||
+            (item.area || "").toLowerCase().includes(q) ||
+            (item.address || "").toLowerCase().includes(q);
+
+          const areaMatch = area === "all" || item.area === area;
+
+          const itemTimes = (item.jamatTimes || [])
+            .map(t => convertToSortableTimeText(t))
+            .filter(Boolean);
+
+          const timeMatch = time === "all" || itemTimes.some(t => t <= time);
+
+          return textMatch && areaMatch && timeMatch;
+        })
+        .sort((a, b) => {
+          const aTime = extractFirstValidTime(a.jamatTimes) || "99:99";
+          const bTime = extractFirstValidTime(b.jamatTimes) || "99:99";
+          return aTime.localeCompare(bTime);
+        });
+    }
+
+    function renderMosqueList(data){
+      resultCount.textContent = `${data.length} টি ফলাফল`;
+
+      if(!data.length){
+        mosqueList.innerHTML = `
+          <div class="mosque-card glass" style="grid-template-columns:1fr;cursor:default;">
+            <div>
+              <h3 class="mosque-name">কোনো ফলাফল পাওয়া যায়নি</h3>
+              <div class="mosque-meta">সার্চ বা ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।</div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      mosqueList.innerHTML = data.map(item=>`
+        <div class="mosque-card glass" onclick="window.focusMosque(${item.id})">
+          <img class="mosque-thumb" src="${item.image || ''}" alt="${item.name || ''}">
+          <div>
+            <h3 class="mosque-name">${item.name || ''}</h3>
+            <div class="mosque-meta">${item.area || ''} • ${item.address || ''}</div>
+            <div class="mosque-time">জামাত: ${(item.jamatTimes || []).join(" | ")}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function createIcon(active=false){
+      const color = active ? "#ddb65f" : "#7adcb3";
+      const ring = active ? "rgba(221,182,95,.18)" : "rgba(122,220,179,.14)";
+      return L.divIcon({
+        className:"",
+        html:`<div style="width:20px;height:20px;background:${color};border-radius:50%;border:3px solid #102018;box-shadow:0 0 0 7px ${ring};"></div>`,
+        iconSize:[20,20],
+        iconAnchor:[10,10],
+        popupAnchor:[0,-10]
+      });
+    }
+
+    function renderMap(data){
+      markers.forEach(marker=>map.removeLayer(marker));
+      markers = [];
+
+      data.forEach(item=>{
+        if (typeof item.lat !== "number" || typeof item.lng !== "number") return;
+
+        const marker = L.marker([item.lat, item.lng], {
+          icon:createIcon(item.id === activeId)
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div class="popup-card">
+            <img src="${item.image || ''}" alt="${item.name || ''}">
+            <h3>${item.name || ''}</h3>
+            <p>${item.address || ''}</p>
+            <p><strong>জামাত:</strong> ${(item.jamatTimes || []).join(" • ")}</p>
+            <p><button onclick="window.openDetails(${item.id})" style="margin-top:6px;padding:10px 12px;border:0;border-radius:10px;background:linear-gradient(135deg,#ddb65f,#c79a3a);color:#271d09;font-weight:700;cursor:pointer;font-family:inherit;">বিস্তারিত</button></p>
+          </div>
+        `, { className:"custom-popup" });
+
+        marker.on("click", ()=> {
+          activeId = item.id;
+          renderMap(getFilteredMosques());
+        });
+
+        markers.push(marker);
+      });
+    }
+
+    window.focusMosque = function(id){
+      const item = (appData.mosques || []).find(m=>m.id===id);
+      if(!item) return;
+      activeId = id;
+      renderMap(getFilteredMosques());
+      map.flyTo([item.lat, item.lng], 14, { duration:0.8 });
+      const filtered = getFilteredMosques();
+      const index = filtered.findIndex(m=>m.id===id);
+      if(index > -1 && markers[index]) markers[index].openPopup();
+    }
+
+    window.openDetails = function(id){
+      const item = (appData.mosques || []).find(m=>m.id===id);
+      if(!item) return;
+
+      modalBody.innerHTML = `
+        <div class="modal-grid">
+          <div>
+            <img class="modal-image" src="${item.image || ''}" alt="${item.name || ''}">
+          </div>
+          <div>
+            <div class="eyebrow" style="margin-bottom:10px;">🕌 ঈদের জামাত তথ্য</div>
+            <h2 class="modal-title">${item.name || ''}</h2>
+            <div class="chips">
+              <div class="chip">${item.area || ''}</div>
+              <div class="chip">${item.capacity || ''}</div>
+            </div>
+            <div class="modal-info">
+              <strong style="color:var(--gold)">ঠিকানা:</strong> ${item.address || ''}<br>
+              <strong style="color:var(--gold)">জামাতের সময়:</strong> ${(item.jamatTimes || []).join(" • ")}<br>
+              <strong style="color:var(--gold)">ইমাম:</strong> ${item.imam || ''}<br>
+              <strong style="color:var(--gold)">বিশেষ নোট:</strong> ${item.note || ''}
+            </div>
+            <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-gold" onclick="window.focusFromModal(${item.id})">ম্যাপে দেখুন</button>
+              <button class="btn btn-dark" onclick="window.closeModal()">বন্ধ করুন</button>
+            </div>
+          </div>
+        </div>
+      `;
+      modal.classList.add("show");
+    }
+
+    window.focusFromModal = function(id){
+      window.closeModal();
+      window.focusMosque(id);
+      window.scrollToMap();
+    }
+
+    window.closeModal = function(){
+      modal.classList.remove("show");
+    }
+
+    function filterAll(){
+      const filtered = getFilteredMosques();
+      renderMosqueList(filtered);
+      renderMap(filtered);
+
+      const valid = filtered.filter(i => typeof i.lat === "number" && typeof i.lng === "number");
+      if(valid.length){
+        const bounds = L.latLngBounds(valid.map(i=>[i.lat, i.lng]));
+        map.fitBounds(bounds, { padding:[40,40] });
+      }
+    }
+
+    window.resetFilters = function(){
+      searchInput.value = "";
+      areaFilter.value = "all";
+      timeFilter.value = "all";
+      activeId = null;
+      const sorted = getFilteredMosques();
+      renderMosqueList(sorted);
+      renderMap(sorted);
+      map.setView([22.8204, 89.5510], 12);
+    }
+
+    window.scrollToMap = function(){
+      document.getElementById("mapSection").scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+
+    window.scrollToList = function(){
+      document.getElementById("listSection").scrollIntoView({ behavior:"smooth", block:"start" });
+    }
+
+    window.focusNearest = function(){
+      if(!navigator.geolocation){
+        alert("আপনার ব্রাউজারে location support নেই");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        const { latitude, longitude } = pos.coords;
+        let nearest = null;
+        let min = Infinity;
+
+        (appData.mosques || []).forEach(item=>{
+          if (typeof item.lat !== "number" || typeof item.lng !== "number") return;
+          const distance = getDistance(latitude, longitude, item.lat, item.lng);
+          if(distance < min){
+            min = distance;
+            nearest = item;
+          }
+        });
+
+        if(nearest){
+          window.focusMosque(nearest.id);
+          window.scrollToList();
+        }
+      }, ()=>{
+        alert("লোকেশন পাওয়া যায়নি");
+      });
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2){
+      const R = 6371;
+      const dLat = (lat2-lat1) * Math.PI / 180;
+      const dLon = (lon2-lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    function initMap(){
+      map = L.map("map").setView([22.8204, 89.5510], 12);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    function refreshUI(){
+      initSiteContent();
+      initStats();
+      populateAreas();
+      const filtered = getFilteredMosques();
+      renderMosqueList(filtered);
+      renderMap(filtered);
+    }
+
+    searchInput.addEventListener("input", filterAll);
+    areaFilter.addEventListener("change", filterAll);
+    timeFilter.addEventListener("change", filterAll);
+
+    modal.addEventListener("click", (e)=>{
+      if(e.target === modal) window.closeModal();
+    });
+
+    initMap();
+
+    onSnapshot(docRef, (snap) => {
+      if (!snap.exists()) {
+        appData = {
+          siteContent: {
+            brand: "Khulna Eid Jamaat Guide by KWFT",
+            eyebrow: "🌙 ঈদ মোবারক • ঈদের জামাত গাইড",
+            title: "ঈদের জামাতের সময়সূচি",
+            subtitle: "খুলনা শহরের বিভিন্ন মসজিদ ম্যাপ থেকে খুঁজে দেখতে পারবেন, প্রতিটি মসজিদের ঠিকানা, জামাতের সময়, ধারণক্ষমতা এবং বিস্তারিত তথ্যসহ।"
+          },
+          mosques: []
+        };
+        refreshUI();
+        return;
+      }
+
+      const raw = snap.data();
+      appData = {
+        siteContent: raw.siteContent || {
+          brand: "",
+          eyebrow: "",
+          title: "",
+          subtitle: ""
+        },
+        mosques: Array.isArray(raw.mosques) ? raw.mosques : []
+      };
+
+      refreshUI();
+    }, (error) => {
+      console.error(error);
+      alert("ডেটা লোড করা যায়নি");
+    });
+  </script>
+
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/8801576792564"
+   class="whatsapp-float"
+   target="_blank">
+   💬
+</a>
+
+<style>
+.whatsapp-float{
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background: #25D366;
+  color: white;
+  font-size: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  z-index: 9999;
+  transition: 0.3s;
+}
+.whatsapp-float:hover{
+  transform: scale(1.1);
+}
+</style>
+
+</body>
+</html>
